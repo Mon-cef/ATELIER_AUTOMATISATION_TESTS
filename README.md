@@ -6,6 +6,8 @@ via GitHub Actions. Rendu de l'atelier [ATELIER_AUTOMATISATION_TESTS](https://gi
 **API surveillée** : [Frankfurter](https://frankfurter.dev/) — taux de change officiels de la BCE, sans authentification.
 Le détail du contrat testé est dans [`API_CHOICE.md`](API_CHOICE.md).
 
+
+
 | | |
 |---|---|
 | 🌐 **Dashboard en production** | https://VOTRE-USER.pythonanywhere.com/ |
