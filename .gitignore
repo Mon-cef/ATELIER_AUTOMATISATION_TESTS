@@ -1,0 +1,20 @@
+# Base de donnees SQLite : generee a l execution, ne doit jamais etre commitee
+# (sinon chaque deploiement GitHub Actions ecraserait l historique de production)
+data/
+*.db
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editeurs / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Outillage local de verification (hors perimetre de l atelier)
+.claude/

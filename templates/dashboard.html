@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QoS Dashboard — {{ api_name }}</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#121a33; --muted:#aab4d4; --text:#e9edff;
+      --accent:#77baff; --ok:#62d6a0; --warn:#ffcc66; --bad:#ff6b7a;
+      --line:rgba(255,255,255,0.08);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      background:radial-gradient(1200px 600px at 10% 0%, #172257 0%, var(--bg) 60%);
+      background-attachment:fixed; color:var(--text); line-height:1.45;
+    }
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+    header{max-width:1100px; margin:0 auto; padding:32px 18px 8px}
+    h1{margin:0 0 6px; font-size:clamp(22px,3vw,32px)}
+    .subtitle{color:var(--muted); max-width:80ch; font-size:14px}
+    .container{max-width:1100px; margin:0 auto; padding:14px 18px 40px}
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));
+      border:1px solid var(--line); border-radius:16px; padding:16px;
+      box-shadow:0 12px 30px rgba(0,0,0,.35); margin-bottom:14px;
+    }
+    .card h2{margin:0 0 4px; font-size:17px}
+    .card .hint{color:var(--muted); font-size:12px; margin:0 0 10px}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .spread{justify-content:space-between}
+    .pill{
+      display:inline-flex; gap:6px; align-items:center; padding:5px 11px;
+      border-radius:999px; font-size:12px; border:1px solid rgba(119,186,255,.28);
+      background:rgba(119,186,255,.12); color:#d9ecff;
+    }
+    .pill.ok{background:rgba(98,214,160,.14); border-color:rgba(98,214,160,.35); color:#d8ffe9}
+    .pill.warn{background:rgba(255,204,102,.14); border-color:rgba(255,204,102,.35); color:#ffe6b3}
+    .pill.bad{background:rgba(255,107,122,.14); border-color:rgba(255,107,122,.35); color:#ffd9dd}
+    .btn{
+      display:inline-block; padding:10px 16px; border-radius:12px; font-weight:600; font-size:13px;
+      background:rgba(119,186,255,.18); border:1px solid rgba(119,186,255,.34); color:var(--text);
+    }
+    .btn:hover{filter:brightness(1.12); text-decoration:none}
+    .btn.ghost{background:rgba(255,255,255,.04); border-color:var(--line); font-weight:500}
+    .kpi{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-top:12px}
+    @media(max-width:900px){.kpi{grid-template-columns:repeat(2,1fr)}}
+    .box{padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.02)}
+    .box b{display:block; font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; font-weight:600}
+    .box .val{font-size:22px; font-weight:700; font-variant-numeric:tabular-nums}
+    .box .sub{color:var(--muted); font-size:11px; margin-top:2px}
+    .val.ok{color:var(--ok)} .val.warn{color:var(--warn)} .val.bad{color:var(--bad)}
+    table{width:100%; border-collapse:collapse; font-size:13px}
+    th,td{padding:9px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top}
+    th{background:rgba(119,186,255,.10); font-weight:600; font-size:12px; position:sticky; top:0}
+    tr:last-child td{border-bottom:none}
+    tbody tr:hover{background:rgba(255,255,255,.025)}
+    .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+    .tag{font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); background:rgba(255,255,255,.05); color:#d6dcff; white-space:nowrap}
+    .st{font-weight:700; font-size:12px; letter-spacing:.03em}
+    .st.PASS{color:var(--ok)} .st.FAIL{color:var(--bad)} .st.ERROR{color:var(--warn)} .st.SKIPPED{color:var(--muted)}
+    .details{color:var(--muted); font-size:12px; font-family:ui-monospace,Consolas,monospace; word-break:break-word}
+    .notice{padding:11px 14px; border-radius:12px; border:1px solid rgba(255,204,102,.3); background:rgba(255,204,102,.10); color:#ffe6b3; font-size:13px; margin-bottom:14px}
+    .empty{padding:26px; text-align:center; color:var(--muted)}
+    .scroll{max-height:420px; overflow:auto; border-radius:12px; border:1px solid var(--line)}
+    code{font-family:ui-monospace,Consolas,monospace; background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:8px; padding:1px 6px; font-size:12px}
+    footer{max-width:1100px; margin:0 auto; padding:0 18px 40px; color:var(--muted); font-size:12px}
+    .legend{display:flex; gap:14px; font-size:11px; color:var(--muted); margin-top:6px; flex-wrap:wrap}
+    .swatch{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="row" style="margin-bottom:10px">
+    <span class="pill">Testing as Code</span>
+    <span class="pill">API monitoring</span>
+    <span class="pill">Python / Flask</span>
+  </div>
+  <h1>Dashboard QoS — {{ api_name }}</h1>
+  <p class="subtitle">
+    Suite de tests automatises sur <a href="{{ base_url }}" target="_blank" rel="noopener">{{ base_url }}</a> :
+    contrat fonctionnel, robustesse et qualite de service. Chaque run est horodate et conserve en SQLite.
+    Budget de {{ max_requests }} requetes max par run, 1 run autorise toutes les {{ cooldown }} s.
+  </p>
+</header>
+
+<div class="container">
+
+  {% if message %}<div class="notice">{{ message }}</div>{% endif %}
+
+  <div class="card">
+    <div class="row spread">
+      <div class="row">
+        <a class="btn" href="{{ url_for('trigger_run') }}">Lancer un run de tests</a>
+        <a class="btn ghost" href="{{ url_for('dashboard') }}">Dernier run</a>
+        <a class="btn ghost" href="{{ url_for('health') }}">/health</a>
+        <a class="btn ghost" href="{{ url_for('export_last') }}">Export JSON</a>
+        <a class="btn ghost" href="{{ url_for('consignes') }}">Consignes</a>
+      </div>
+      <div class="row">
+        {% if stats.runs_count %}
+          <span class="tag">{{ stats.runs_count }} run(s) en base</span>
+          <span class="tag">dispo. moyenne {{ "%.1f"|format(stats.availability_avg * 100) }} %</span>
+          <span class="tag">latence moyenne {{ "%.0f"|format(stats.latency_avg) }} ms</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if not run %}
+    <div class="card empty">
+      <p>Aucun run enregistre pour l'instant.</p>
+      <p><a class="btn" href="{{ url_for('trigger_run') }}">Lancer le premier run</a></p>
+    </div>
+  {% else %}
+
+    {% set verdict = run.verdict %}
+
+    <div class="card">
+      <div class="row spread">
+        <div>
+          <h2>Run #{{ run.id }} — {{ run.timestamp }}</h2>
+          <p class="hint">
+            Declenche par <code>{{ run.triggered_by }}</code> ·
+            {{ run.http_calls }} appels HTTP · duree totale {{ "%.0f"|format(run.duration_ms) }} ms
+          </p>
+        </div>
+        <span class="pill {{ 'ok' if verdict == 'OK' else ('warn' if verdict == 'DEGRADED' else 'bad') }}">
+          Verdict : {{ verdict }}
+        </span>
+      </div>
+
+      <div class="kpi">
+        <div class="box">
+          <b>Tests reussis</b>
+          <div class="val {{ 'ok' if run.failed + run.errors == 0 else 'bad' }}">{{ run.passed }}/{{ run.total }}</div>
+          <div class="sub">{{ run.failed }} echec(s), {{ run.errors }} erreur(s)</div>
+        </div>
+        <div class="box">
+          <b>Taux d'erreur</b>
+          <div class="val {{ 'ok' if run.error_rate == 0 else ('warn' if run.error_rate <= 0.2 else 'bad') }}">
+            {{ "%.1f"|format(run.error_rate * 100) }} %
+          </div>
+          <div class="sub">(echecs + erreurs) / tests</div>
+        </div>
+        <div class="box">
+          <b>Disponibilite</b>
+          <div class="val {{ 'ok' if run.availability >= 0.99 else ('warn' if run.availability >= 0.8 else 'bad') }}">
+            {{ "%.1f"|format(run.availability * 100) }} %
+          </div>
+          <div class="sub">part de tests conformes</div>
+        </div>
+        <div class="box">
+          <b>Latence moyenne</b>
+          <div class="val {{ 'ok' if run.latency_ms_avg <= latency_sla_ms else 'warn' }}">
+            {{ "%.0f"|format(run.latency_ms_avg) }} ms
+          </div>
+          <div class="sub">par appel HTTP</div>
+        </div>
+        <div class="box">
+          <b>Latence p95</b>
+          <div class="val {{ 'ok' if run.latency_ms_p95 <= latency_sla_ms else 'bad' }}">
+            {{ "%.0f"|format(run.latency_ms_p95) }} ms
+          </div>
+          <div class="sub">SLA {{ "%.0f"|format(latency_sla_ms) }} ms · max {{ "%.0f"|format(run.latency_ms_max) }} ms</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Detail des tests</h2>
+      <p class="hint">
+        <b>contract</b> = contrat fonctionnel · <b>robustness</b> = entrees invalides, 429/5xx ·
+        <b>qos</b> = seuil de latence. Un message est affiche pour chaque assertion mise en defaut.
+      </p>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:34px">#</th>
+              <th>Test</th>
+              <th style="width:96px">Categorie</th>
+              <th style="width:72px">Statut</th>
+              <th class="num" style="width:90px">Latence</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in run.tests %}
+            <tr>
+              <td class="num">{{ loop.index }}</td>
+              <td>
+                <div><code>{{ t.name }}</code></div>
+                <div class="details" style="margin-top:3px">{{ t.description }}</div>
+              </td>
+              <td><span class="tag">{{ t.category }}</span></td>
+              <td><span class="st {{ t.status }}">{{ t.status }}</span></td>
+              <td class="num">{{ "%.0f"|format(t.latency_ms) }} ms</td>
+              <td class="details">{{ t.details or "—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if trend|length > 1 %}
+    {% set lat_values = trend|map(attribute='latency_ms_p95')|list %}
+    {% set lat_max = [lat_values|max, 1]|max %}
+    {% set n = trend|length %}
+    <div class="card">
+      <h2>Tendance sur les {{ n }} derniers runs</h2>
+      <p class="hint">Latence p95 (courbe) et taux d'erreur (barres) : on lit d'un coup d'oeil une derive de performance ou une serie d'echecs.</p>
+      <svg viewBox="0 0 640 170" width="100%" height="190" role="img" aria-label="Tendance latence et taux d'erreur">
+        <line x1="0" y1="140" x2="640" y2="140" stroke="rgba(255,255,255,.18)" stroke-width="1"/>
+        <line x1="0" y1="20" x2="640" y2="20" stroke="rgba(255,255,255,.07)" stroke-width="1" stroke-dasharray="4 4"/>
+        <text x="4" y="16" fill="#aab4d4" font-size="10">{{ "%.0f"|format(lat_max) }} ms</text>
+
+        {% for point in trend %}
+          {% set x = 10 + loop.index0 * (620 / (n - 1)) %}
+          {% if point.error_rate > 0 %}
+            {% set bar_h = (point.error_rate * 120)|round(1) %}
+            <rect x="{{ "%.1f"|format(x - 4) }}" y="{{ "%.1f"|format(140 - bar_h) }}"
+                  width="8" height="{{ "%.1f"|format(bar_h) }}" rx="2" fill="rgba(255,107,122,.45)"/>
+          {% endif %}
+        {% endfor %}
+
+        <polyline fill="none" stroke="#77baff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+          points="{% for point in trend %}{{ "%.1f"|format(10 + loop.index0 * (620 / (n - 1))) }},{{ "%.1f"|format(140 - (point.latency_ms_p95 / lat_max) * 118) }} {% endfor %}"/>
+
+        {% for point in trend %}
+          {% set x = 10 + loop.index0 * (620 / (n - 1)) %}
+          {% set y = 140 - (point.latency_ms_p95 / lat_max) * 118 %}
+          <circle cx="{{ "%.1f"|format(x) }}" cy="{{ "%.1f"|format(y) }}" r="3"
+                  fill="{{ '#62d6a0' if point.verdict == 'OK' else ('#ffcc66' if point.verdict == 'DEGRADED' else '#ff6b7a') }}">
+            <title>Run #{{ point.id }} — {{ point.timestamp }} — p95 {{ "%.0f"|format(point.latency_ms_p95) }} ms — erreurs {{ "%.0f"|format(point.error_rate * 100) }} %</title>
+          </circle>
+        {% endfor %}
+
+        <text x="10" y="160" fill="#aab4d4" font-size="10">#{{ trend[0].id }}</text>
+        <text x="600" y="160" fill="#aab4d4" font-size="10">#{{ trend[-1].id }}</text>
+      </svg>
+      <div class="legend">
+        <span><span class="swatch" style="background:#77baff"></span>latence p95</span>
+        <span><span class="swatch" style="background:rgba(255,107,122,.45)"></span>taux d'erreur</span>
+        <span><span class="swatch" style="background:#62d6a0"></span>OK</span>
+        <span><span class="swatch" style="background:#ffcc66"></span>degrade</span>
+        <span><span class="swatch" style="background:#ff6b7a"></span>down</span>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if history %}
+  <div class="card">
+    <div class="row spread">
+      <h2>Historique des runs</h2>
+      <a class="btn ghost" href="{{ url_for('export_runs') }}">Telecharger l'historique (JSON)</a>
+    </div>
+    <p class="hint">Les {{ history|length }} runs les plus recents. Cliquez sur un identifiant pour revoir le detail.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px">Run</th>
+            <th>Horodatage</th>
+            <th style="width:90px">Source</th>
+            <th style="width:90px">Verdict</th>
+            <th class="num" style="width:80px">OK/Total</th>
+            <th class="num" style="width:90px">Erreurs</th>
+            <th class="num" style="width:90px">Moy.</th>
+            <th class="num" style="width:90px">p95</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in history %}
+          <tr>
+            <td><a href="{{ url_for('run_detail', run_id=h.id) }}">#{{ h.id }}</a></td>
+            <td>{{ h.timestamp }}</td>
+            <td><span class="tag">{{ h.triggered_by }}</span></td>
+            <td><span class="st {{ 'PASS' if h.verdict == 'OK' else ('ERROR' if h.verdict == 'DEGRADED' else 'FAIL') }}">{{ h.verdict }}</span></td>
+            <td class="num">{{ h.passed }}/{{ h.total }}</td>
+            <td class="num">{{ "%.1f"|format(h.error_rate * 100) }} %</td>
+            <td class="num">{{ "%.0f"|format(h.latency_ms_avg) }} ms</td>
+            <td class="num">{{ "%.0f"|format(h.latency_ms_p95) }} ms</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<footer>
+  Atelier M1 — Testing as Code &amp; API Monitoring · donnees de change fournies par la Banque centrale europeenne via Frankfurter ·
+  endpoints machine : <a href="{{ url_for('api_runs') }}">/api/runs</a>, <a href="{{ url_for('health') }}">/health</a>.
+</footer>
+
+</body>
+</html>

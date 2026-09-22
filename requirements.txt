@@ -1,1 +1,4 @@
+# Dependances de production (installees par PythonAnywhere).
+# La suite de tests n utilise que la bibliotheque standard (urllib, sqlite3),
+# ce qui evite tout pip install sur un compte PythonAnywhere gratuit.
 Flask==3.0.3
